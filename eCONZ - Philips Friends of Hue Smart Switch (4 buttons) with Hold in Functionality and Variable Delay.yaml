@@ -3,7 +3,7 @@ blueprint:
   description: >
     Philips Friends of Hue Smart Switch (4 buttons), like Senic https://de.senic.com based on PTM 215ZE EnOcean Alliance. Includes variable delay for hold actions.
   domain: automation
-  source_url: https://github.com/extreme4u/home-assistant_blueprints/blob/main/deCONZ%20-%20Philips%20Friends%20of%20Hue%20Smart%20Switch%20(4%20buttons)%20with%20Hold%20in%20Functionality%20and%20Variable%20Delay%2520
+  source_url: https://github.com/extreme4u/home-assistant_blueprints/blob/main/eCONZ%20-%20Philips%20Friends%20of%20Hue%20Smart%20Switch%20(4%20buttons)%20with%20Hold%20in%20Functionality%20and%20Variable%20Delay.yaml
   input:
     remote:
       name: Remote
