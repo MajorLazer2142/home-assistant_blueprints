@@ -1,5 +1,5 @@
 blueprint:
-  name: Controller - EnOcean PTM 215Z (Friends of Hue) switch with Hold Loop
+  name: z2m - EnOcean PTM 215Z (Friends of Hue) switch with Hold Loop
   description: >
     Controller automation for executing press/hold/release actions with hold loop for EnOcean PTM 215Z switch.
     Requires an input_text entity to track held state. Create an input_text entity (e.g., input_text.switch_held_state)
