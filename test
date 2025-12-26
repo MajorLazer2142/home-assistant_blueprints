@@ -1,0 +1,113 @@
+blueprint:
+  name: Aqara FP300 Occupancy Lighting
+  description: Turns on selected lights when the Aqara FP300 detects occupancy and ambient light is below a threshold. Supports fixed brightness and color temperature on turn-on. Turns off selected lights after a configurable delay when unoccupied.
+  domain: automation
+  input:
+    occupancy_sensor:
+      name: Occupancy Sensor
+      description: 'Aqara FP300 presence sensor (device_class: occupancy or motion)'
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class:
+            - occupancy
+            - motion
+    illuminance_sensor:
+      name: Illuminance Sensor
+      description: 'Illuminance sensor in lux (usually built into the FP300)'
+      selector:
+        entity:
+          domain: sensor
+          device_class: illuminance
+    illuminance_threshold:
+      name: Illuminance Threshold (lux)
+      description: Lights turn on only if illuminance is below this value.
+      default: 60
+      selector:
+        number:
+          min: 0
+          max: 1000
+          unit_of_measurement: lux
+          mode: box
+    brightness_pct:
+      name: Brightness when Turning On (%)
+      description: 'Fixed brightness when turning on (1-100). Default: 100% (full brightness).'
+      default: 100
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: '%'
+          mode: box
+    color_temp_kelvin:
+      name: Color Temperature when Turning On (Kelvin)
+      description: 'Fixed color temperature when turning on (2700-6500 K). Default: 2700 K (warm white).'
+      default: 2700
+      selector:
+        number:
+          min: 2000
+          max: 6500
+          unit_of_measurement: K
+          mode: box
+    lights_turn_on:
+      name: Lights to Turn On
+      description: Lights that turn on when occupancy is detected and it is dark enough.
+      selector:
+        target:
+          entity:
+            domain: light
+    lights_turn_off:
+      name: Lights to Turn Off
+      description: Lights that turn off when the area becomes unoccupied (after delay).
+      selector:
+        target:
+          entity:
+            domain: light
+    off_delay_minutes:
+      name: Off Delay (minutes)
+      description: Delay after last occupancy before turning off lights. 0 = immediate.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 60
+          unit_of_measurement: min
+          mode: box
+
+trigger:
+  - platform: state
+    entity_id: !input occupancy_sensor
+    from: "off"
+    to: "on"
+    id: Occupied
+  - platform: state
+    entity_id: !input occupancy_sensor
+    from: "on"
+    to: "off"
+    for:
+      minutes: !input off_delay_minutes
+    id: Unoccupied
+
+condition:
+  - condition: numeric_state
+    entity_id: !input illuminance_sensor
+    below: !input illuminance_threshold
+
+action:
+  - if:
+      - condition: trigger
+        id: Occupied
+    then:
+      - service: light.turn_on
+        target: !input lights_turn_on
+        data:
+          brightness_pct: !input brightness_pct
+          color_temp_kelvin: !input color_temp_kelvin
+  - if:
+      - condition: trigger
+        id: Unoccupied
+    then:
+      - service: light.turn_off
+        target: !input lights_turn_off
+
+mode: single
