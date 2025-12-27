@@ -1,6 +1,6 @@
 blueprint:
   name: Aqara FP300 Occupancy Lighting
-  description: Turns on selected lights when the Aqara FP300 detects occupancy and ambient light is below a threshold. Supports fixed brightness and color temperature on turn-on. Turns off selected lights after a configurable delay when unoccupied.
+  description: Turns on selected lights when the Aqara FP300 detects occupancy and ambient light is below a threshold. Supports fixed brightness and color temperature on turn-on. Turns off selected lights after a configurable delay when unoccupied, regardless of illuminance.
   domain: automation
   input:
     occupancy_sensor:
@@ -88,15 +88,13 @@ trigger:
       minutes: !input off_delay_minutes
     id: Unoccupied
 
-condition:
-  - condition: numeric_state
-    entity_id: !input illuminance_sensor
-    below: !input illuminance_threshold
-
 action:
   - if:
       - condition: trigger
         id: Occupied
+      - condition: numeric_state
+        entity_id: !input illuminance_sensor
+        below: !input illuminance_threshold
     then:
       - service: light.turn_on
         target: !input lights_turn_on
