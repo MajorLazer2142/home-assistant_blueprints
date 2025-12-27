@@ -1,5 +1,5 @@
 blueprint:
-  name: Aqara FP300 Occupancy Lighting
+  name: Aqara FP300 Occupancy Lighting (V1.1)
   description: Turns on selected lights when the Aqara FP300 detects occupancy and ambient light is below a threshold. Supports fixed brightness and color temperature on turn-on. Turns off selected lights after a configurable delay when unoccupied, regardless of illuminance.
   domain: automation
   input:
