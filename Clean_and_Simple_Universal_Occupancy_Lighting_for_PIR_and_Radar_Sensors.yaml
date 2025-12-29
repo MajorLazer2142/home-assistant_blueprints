@@ -4,7 +4,6 @@ blueprint:
     Turns on selected lights when occupancy is detected and ambient light is below a threshold.
     Supports fixed brightness and color temperature on turn-on. Turns off lights after a configurable
     delay when unoccupied. Compatible with any PIR or radar sensor providing occupancy or motion
-    Version V1.2
     device class (examples: Aqara FP300, Eve Motion).
   domain: automation
   input:
