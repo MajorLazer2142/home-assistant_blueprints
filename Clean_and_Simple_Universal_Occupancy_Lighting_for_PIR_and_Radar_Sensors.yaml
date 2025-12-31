@@ -1,89 +1,154 @@
 blueprint:
   name: Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors
   description: >-
-    Turns on selected lights when occupancy is detected and ambient light is below a threshold.
-    Supports fixed brightness and color temperature on turn-on. Turns off lights after a configurable
-    delay when unoccupied. Compatible with any PIR or radar sensor providing occupancy or motion
-    device class (examples: Aqara FP300, Eve Motion).
+    Motion-activated lighting with optional illuminance check and fixed brightness/color temperature.
+    Area is occupied if at least one sensor detects presence.
+    Separate selection for lights to turn on and lights to turn off.
+    Optional: Dim lights as a courteous warning before final turn-off.
+    Perfect for PIR and radar sensors like Aqara FP300.
   domain: automation
+
   input:
-    occupancy_sensors:
-      name: Occupancy Sensors
-      description: 'One or more presence/motion sensors (device_class: occupancy or motion, e.g., Aqara FP300 or Eve Motion). The area is considered occupied if at least one sensor detects occupancy.'
-      selector:
-        entity:
-          domain: binary_sensor
-          device_class:
-            - occupancy
-            - motion
-          multiple: true
-    illuminance_sensor:
-      name: Illuminance Sensor
-      description: 'Illuminance sensor in lux (often built into one of the sensors)'
-      selector:
-        entity:
-          domain: sensor
-          device_class: illuminance
-    illuminance_threshold:
-      name: Illuminance Threshold (lux)
-      description: Lights turn on only if illuminance is below this value.
-      default: 60
-      selector:
-        number:
-          min: 0
-          max: 1000
-          unit_of_measurement: lux
-          mode: box
-    brightness_pct:
-      name: Brightness when Turning On (%)
-      description: 'Fixed brightness when turning on (1-100). Default: 100% (full brightness).'
-      default: 100
-      selector:
-        number:
-          min: 1
-          max: 100
-          unit_of_measurement: '%'
-          mode: box
-    color_temp_kelvin:
-      name: Color Temperature when Turning On (Kelvin)
-      description: 'Fixed color temperature when turning on (2700-6500 K). Default: 2700 K (warm white).'
-      default: 2700
-      selector:
-        number:
-          min: 2000
-          max: 6500
-          unit_of_measurement: K
-          mode: box
-    lights_turn_on:
-      name: Lights to Turn On
-      description: >-
-        Lights (or switches) that turn on when occupancy is detected and it is dark enough.
-        Note: To control switchable outlets/plugs instead of lights, change the entity domain
-        from 'switch' to 'light' in the automation editor after creating the automation.
-      selector:
-        target:
-          entity:
-            domain: light
-    lights_turn_off:
-      name: Lights to Turn Off
-      description: >-
-        Lights (or switches) that turn off when the area becomes unoccupied (after delay).
-        Note: To control switchable outlets/plugs instead of lights, change the entity domain
-        from 'switch' to 'light' in the automation editor after creating the automation.
-      selector:
-        target:
-          entity:
-            domain: light
-    off_delay_minutes:
-      name: Off Delay (minutes)
-      description: Delay after the last sensor reports "off" before turning off lights. 0 = immediate.
-      default: 5
-      selector:
-        number:
-          min: 0
-          max: 60
-          unit_of_measurement: min
-          mode: box
+    sensors_conditions:
+      name: Sensors & Conditions
+      description: Select sensors and conditions for turning lights on
+      icon: mdi:radar
+      collapsed: false
+      input:
+        occupancy_sensors:
+          name: Occupancy Sensors
+          description: One or more presence/motion sensors. Area is occupied if at least one detects presence.
+          selector:
+            entity:
+              domain: binary_sensor
+              device_class:
+                - occupancy
+                - motion
+              multiple: true
+        illuminance_sensor:
+          name: Illuminance Sensor (optional)
+          description: Leave empty to ignore ambient light. Lights will then turn on regardless of brightness.
+          selector:
+            entity:
+              domain: sensor
+              device_class: illuminance
+          default: []
+        illuminance_threshold:
+          name: Illuminance Threshold (lux)
+          description: Lights turn on only if current illuminance is below this value
+          default: 60
+          selector:
+            number:
+              min: 0
+              max: 1000
+              unit_of_measurement: lux
+              mode: box
+
+    lights_appearance:
+      name: Lights & Appearance
+      description: Which lights to control and how they should appear when turned on
+      icon: mdi:lightbulb-group
+      collapsed: false
+      input:
+        lights_turn_on:
+          name: Lights to Turn On
+          description: These lights will be turned on when occupancy is detected (and dark enough)
+          selector:
+            target:
+              entity:
+                domain: light
+        lights_turn_off:
+          name: Lights to Turn Off
+          description: These lights will be dimmed/turned off when the area becomes unoccupied. Can be the same or different.
+          selector:
+            target:
+              entity:
+                domain: light
+        brightness_pct:
+          name: Brightness when Turning On (%)
+          description: Fixed brightness for turn-on action
+          default: 100
+          selector:
+            number:
+              min: 1
+              max: 100
+              unit_of_measurement: '%'
+              mode: box
+        color_temp_kelvin:
+          name: Color Temperature when Turning On (Kelvin)
+          description: Fixed color temperature (2700 = warm, 6500 = cool)
+          default: 2700
+          selector:
+            number:
+              min: 2000
+              max: 6500
+              unit_of_measurement: K
+              mode: box
+
+    timing:
+      name: Timing
+      description: Delay before turning off or starting dim phase
+      icon: mdi:timer-outline
+      collapsed: false
+      input:
+        off_delay_minutes:
+          name: Main Off Delay (minutes)
+          description: Time after last detection before dimming or turning off
+          default: 5
+          selector:
+            number:
+              min: 0
+              max: 60
+              unit_of_measurement: min
+              mode: box
+
+    dim_advanced:
+      name: Dim before Off (Advanced)
+      description: Optional courteous behavior – dim as warning before final turn-off
+      icon: mdi:brightness-4
+      collapsed: true
+      input:
+        enable_dim_before_off:
+          name: Enable Dim before Turning Off
+          description: If enabled, selected "Lights to Turn Off" will dim first instead of turning off immediately
+          default: false
+          selector:
+            boolean:
+        dim_brightness_pct:
+          name: Dim Brightness (%)
+          description: Target brightness at the end of the dimming phase
+          default: 20
+          selector:
+            number:
+              min: 1
+              max: 100
+              unit_of_measurement: '%'
+              mode: box
+        dim_transition_seconds:
+          name: Dim Transition Duration (seconds)
+          description: How long the gradual dimming should take 
+          default: 30
+          selector:
+            number:
+              min: 0
+              max: 300
+              unit_of_measurement: sec
+              mode: box
+        dim_delay_minutes:
+          name: Hold Time at Dim Level (minutes)
+          description: Additional time the lights stay at the dimmed brightness before finally turning off
+          default: 5
+          selector:
+            number:
+              min: 0
+              max: 30
+              unit_of_measurement: min
+              mode: box
+
+variables:
+  sensors: !input occupancy_sensors
+  enable_dim: !input enable_dim_before_off
+  illuminance_sensor_entity: !input illuminance_sensor
 
 trigger:
   - platform: state
@@ -97,28 +162,48 @@ trigger:
       minutes: !input off_delay_minutes
     id: Unoccupied
 
-condition: []
-
 action:
   - choose:
       - conditions:
           - condition: trigger
             id: Occupied
-          - condition: numeric_state
-            entity_id: !input illuminance_sensor
-            below: !input illuminance_threshold
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ illuminance_sensor_entity == [] }}"
+              - condition: numeric_state
+                entity_id: !input illuminance_sensor
+                below: !input illuminance_threshold
         sequence:
           - service: light.turn_on
             target: !input lights_turn_on
             data:
               brightness_pct: !input brightness_pct
               color_temp_kelvin: !input color_temp_kelvin
+
       - conditions:
           - condition: trigger
             id: Unoccupied
+          - condition: template
+            value_template: "{{ expand(sensors) | selectattr('state', 'eq', 'off') | list | length == sensors | length }}"
         sequence:
-          - service: light.turn_off
-            target: !input lights_turn_off
+          - if:
+              - condition: template
+                value_template: "{{ not enable_dim }}"
+            then:
+              - service: light.turn_off
+                target: !input lights_turn_off
+            else:
+              - service: light.turn_on
+                target: !input lights_turn_off
+                data:
+                  brightness_pct: !input dim_brightness_pct
+                  transition: !input dim_transition_seconds
+              - delay:
+                  seconds: !input dim_transition_seconds
+                  minutes: !input dim_delay_minutes
+              - service: light.turn_off
+                target: !input lights_turn_off
     default: []
 
-mode: single
+mode: restart
