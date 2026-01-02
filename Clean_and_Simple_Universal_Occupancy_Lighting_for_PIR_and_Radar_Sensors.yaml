@@ -1,22 +1,24 @@
 blueprint:
-  name: 💡Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors💡
-  description: >-
-    # 💡Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors💡
-  
+  name: "Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors"
+  description: 
+   
+   "# Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors
     
-    **Version: 1.4**
-  
-  
-    Motion-activated lighting with optional illuminance check and fixed brightness/color temperature.
-    Area is occupied if at least one sensor detects presence.
-    Separate selection for lights to turn on and lights to turn off.
-    Optional: Dim lights as a courteous warning before final turn-off.
-    Perfect for PIR and radar sensors like Aqara FP300 and EVE Motion.
-  
-  
-    Required = *
-  
-  
+    
+    **Version: 1.5** 
+    
+    
+Motion-activated lighting with optional illuminance check, fixed brightness/color temperature, 
+and schedule restriction. Area is occupied if at least one sensor detects presence. 
+Separate selection for lights to turn on and lights to turn off. 
+Optional: Dim lights as a courteous warning before final turn-off. 
+Optional: Schedule restriction with an helper. 
+Perfect for PIR and radar sensors like Aqara FP300 and Eve Motion.
+    
+    
+    Required = *"
+    
+    
   domain: automation
   input:
     sensors_conditions:
@@ -74,7 +76,7 @@ blueprint:
           name: Lights to Turn On *
           description: These lights will be turned on when occupancy is detected (and
             dark enough)
-          default: []    
+          default: []
           selector:
             target:
               entity:
@@ -112,8 +114,8 @@ blueprint:
               unit_of_measurement: K
               mode: box
               step: 1.0
-    timing:
-      name: Timing
+    off_delay:
+      name: Off Delay
       description: Delay before turning off or starting dim phase
       icon: mdi:timer-outline
       collapsed: true
@@ -129,6 +131,27 @@ blueprint:
               unit_of_measurement: min
               mode: box
               step: 1.0
+    schedule_restriction:
+      name: Schedule (Optional)
+      description: Restrict the automation to specific time periods using a schedule helper
+      icon: mdi:calendar-clock
+      collapsed: true
+      input:
+        enable_schedule_restriction:
+          name: Enable Schedule Restriction
+          description: If enabled, the automation only runs during the active periods of the selected schedule
+          default: false
+          selector:
+            boolean:
+        schedule_helper:
+          name: Schedule Helper
+          description: Select a Schedule helper schedule that defines when the automation may run
+          default: []
+          selector:
+            entity:
+              domain: schedule
+              multiple: true
+              
     dim_advanced:
       name: Dim before Off (Optional)
       description: Optional courteous behavior – dim as warning before final turn-off
@@ -181,6 +204,8 @@ variables:
   sensors: !input occupancy_sensors
   enable_dim: !input enable_dim_before_off
   illuminance_sensor_entity: !input illuminance_sensor
+  schedule_enabled: !input enable_schedule_restriction
+  schedule_entity: !input schedule_helper
 trigger:
 - platform: state
   entity_id: !input occupancy_sensors
@@ -204,6 +229,12 @@ action:
       - condition: numeric_state
         entity_id: !input illuminance_sensor
         below: !input illuminance_threshold
+    - condition: or
+      conditions:
+        - "{{ not schedule_enabled }}"
+        - condition: state
+          entity_id: !input schedule_helper
+          state: "on"    
     sequence:
     - service: light.turn_on
       target: !input lights_turn_on
