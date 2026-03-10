@@ -3,7 +3,7 @@ blueprint:
   description: >-
     # 💡 Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors
 
-    **Version: 1.7**
+    **Version: 1.8**
 
     Motion-activated lighting with optional illuminance check, fixed brightness/color temperature,
     fade-in on turn-on, dim before off, and schedule restriction via helper.
@@ -15,8 +15,10 @@ blueprint:
 
     ---
 
-    ### 🔧 Changes in v1.7
+    ### 🔧 Changes in v1.8
 
+    - **Feature:** Off-delay now configurable in **seconds** (0–3600) instead of minutes,
+      allowing short delays like 10 seconds for hallways. Default: 300 s (= 5 min).
     - **Fix:** Off-delay now correctly starts from the *last* sensor going off
       (previously could fire too early with multiple sensors).
     - **Fix:** Schedule restriction no longer errors when enabled without a helper selected.
@@ -172,15 +174,17 @@ blueprint:
       collapsed: true
       input:
 
-        off_delay_minutes:
-          name: Main Off Delay (minutes)
-          description: Time after last detection before dimming or turning off.
-          default: 5
+        off_delay_seconds:
+          name: Main Off Delay (seconds)
+          description: >-
+            Time after last detection before dimming or turning off.
+            Example: 10 = 10 seconds, 300 = 5 minutes.
+          default: 300
           selector:
             number:
               min: 0.0
-              max: 60.0
-              unit_of_measurement: min
+              max: 3600.0
+              unit_of_measurement: sec
               mode: box
               step: 1.0
 
@@ -272,7 +276,7 @@ variables:
   schedule_enabled: !input enable_schedule_restriction
   schedule_helper_entity: !input schedule_helper
   color_temp: !input color_temp_kelvin
-  off_delay_min: !input off_delay_minutes
+  off_delay_sec: !input off_delay_seconds
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FIX 1: Trigger on "off" WITHOUT "for" – the delay moves into the action
@@ -360,7 +364,7 @@ action:
           # With mode: restart, any sensor going "on" during this wait
           # restarts the automation → Branch 1 fires → lights stay on.
           - delay:
-              minutes: !input off_delay_minutes
+              seconds: !input off_delay_seconds
 
           # Re-verify ALL reachable sensors are still off after the delay
           # (guards against race conditions and very short retriggering)
