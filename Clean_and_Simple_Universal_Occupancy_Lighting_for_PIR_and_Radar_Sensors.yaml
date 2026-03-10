@@ -1,61 +1,91 @@
 blueprint:
   name: "Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors"
-  description: 
-   
-   "# Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors
-    
-    
-    **Version: 1.5** 
-    
-    
-Motion-activated lighting with optional illuminance check, fixed brightness/color temperature, dim before off 
-and schedule restriction via helper. 
-Area is occupied if at least one sensor detects presence. 
-Separate selection for lights to turn on and lights to turn off.  
-Perfect for PIR and radar sensors like Aqara FP300 and Eve Motion.
-    
-    
-    Required = *"
-    
-    
+  description: >-
+    # 💡 Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors
+
+    **Version: 1.7**
+
+    Motion-activated lighting with optional illuminance check, fixed brightness/color temperature,
+    fade-in on turn-on, dim before off, and schedule restriction via helper.
+
+    Area is occupied if **at least one** sensor detects presence.
+    Separate selection for lights to turn on and lights to turn off.
+
+    Perfect for PIR and radar sensors like Aqara FP300 and Eve Motion.
+
+    ---
+
+    ### 🔧 Changes in v1.7
+
+    - **Fix:** Off-delay now correctly starts from the *last* sensor going off
+      (previously could fire too early with multiple sensors).
+    - **Fix:** Schedule restriction no longer errors when enabled without a helper selected.
+    - **Fix:** Sensors with state `unavailable` or `unknown` are now filtered out,
+      preventing lights from getting stuck on.
+    - **Improvement:** Added `max_exceeded: silent` to suppress log warnings from frequent sensor events.
+
+    ---
+
+    ### ❓ Troubleshooting
+
+    **Lights not showing in the picker?**
+    Make sure you are on the *Entity* tab in the target picker. If you use light groups or
+    devices, switch to the *Device* or *Area* tab. Only entities with domain `light` are listed.
+
+    **Sensor not triggering (e.g. Aqara FP300 via Matter/Thread)?**
+    Open *Developer Tools → States* and search for your sensor. It must have
+    `device_class: occupancy`, `motion`, or `presence` to appear in the selector.
+    If the device_class is missing or different, create an `input_boolean` helper and
+    mirror it with a separate template/automation, then use that helper here.
+
+    ---
+
+    Required fields = *
+
   domain: automation
+
   input:
+
     sensors_conditions:
-      name: Sensors & Conditions *
+      name: "🔍 Sensors & Conditions *"
       description: Select sensors and conditions for turning lights on
       icon: mdi:radar
       collapsed: true
       input:
+
         occupancy_sensors:
           name: Occupancy Sensors *
-          description: One or more presence/motion sensors. Area is occupied if at
-            least one detects presence.
+          description: >-
+            One or more presence/motion sensors. The area counts as occupied if **at least one**
+            sensor detects presence. Supported device classes: occupancy, motion, presence.
           default: []
           selector:
             entity:
               domain:
-              - binary_sensor
+                - binary_sensor
               device_class:
-              - occupancy
-              - motion
+                - occupancy
+                - motion
+                - presence
               multiple: true
               reorder: false
+
         illuminance_sensor:
           name: Illuminance Sensor (optional)
-          description: Leave empty to ignore ambient light. Lights will then turn
-            on regardless of brightness.
+          description: >-
+            Leave empty to ignore ambient light – lights will turn on regardless of brightness.
           default: []
           selector:
             entity:
               domain:
-              - sensor
+                - sensor
               device_class:
-              - illuminance
-              reorder: false
+                - illuminance
               multiple: false
+
         illuminance_threshold:
           name: Illuminance Threshold (lux)
-          description: Lights turn on only if current illuminance is below this value
+          description: Lights turn on only if current illuminance is below this value.
           default: 60
           selector:
             number:
@@ -64,64 +94,87 @@ Perfect for PIR and radar sensors like Aqara FP300 and Eve Motion.
               unit_of_measurement: lux
               mode: box
               step: 1.0
+
     lights_appearance:
-      name: Lights & Appearance *
-      description: Which lights to control and how they should appear when turned
-        on
+      name: "💡 Lights & Appearance *"
+      description: Which lights to control and how they should appear when turned on
       icon: mdi:lightbulb-group
       collapsed: true
       input:
+
         lights_turn_on:
           name: Lights to Turn On *
-          description: These lights will be turned on when occupancy is detected (and
-            dark enough)
-          default: []
+          description: >-
+            These lights will be turned on when occupancy is detected (and dark enough).
+            You can select individual entities, devices, or entire areas.
+          default: {}
           selector:
             target:
               entity:
-              - domain:
-                - light
+                - domain:
+                    - light
+
         lights_turn_off:
           name: Lights to Turn Off *
-          description: These lights will be dimmed/turned off when the area becomes
-            unoccupied. Can be the same or different.
-          default: []
+          description: >-
+            These lights will be dimmed/turned off when the area becomes unoccupied.
+            Can be the same as or different from "Lights to Turn On".
+          default: {}
           selector:
             target:
               entity:
-              - domain:
-                - light
+                - domain:
+                    - light
+
         brightness_pct:
           name: Brightness when Turning On (%)
-          description: Fixed brightness for turn-on action
+          description: Target brightness when occupancy is detected.
           default: 100
           selector:
             number:
               min: 1.0
               max: 100.0
               unit_of_measurement: '%'
-              mode: box
+              mode: slider
               step: 1.0
+
         color_temp_kelvin:
           name: Color Temperature when Turning On (Kelvin)
-          description: Fixed color temperature (2700 = warm, 6500 = cool)
+          description: >-
+            Fixed color temperature (2700 = warm white, 6500 = cool daylight).
+            Set to 0 to skip changing the color temperature.
           default: 2700
           selector:
             number:
-              min: 2000.0
+              min: 0.0
               max: 6500.0
               unit_of_measurement: K
               mode: box
+              step: 100.0
+
+        turn_on_transition:
+          name: Fade-in Duration when Turning On (seconds)
+          description: >-
+            How long the lights take to fade in when turning on. Set to 0 for instant on.
+          default: 0
+          selector:
+            number:
+              min: 0.0
+              max: 60.0
+              unit_of_measurement: sec
+              mode: box
               step: 1.0
+
     off_delay:
-      name: Off Delay
-      description: Delay before turning off or starting dim phase
+      name: "⏱ Off Delay"
+      description: Delay before turning off or starting the dim phase
       icon: mdi:timer-outline
       collapsed: true
       input:
+
         off_delay_minutes:
           name: Main Off Delay (minutes)
-          description: Time after last detection before dimming or turning off
+          description: Time after last detection before dimming or turning off.
           default: 5
           selector:
             number:
@@ -130,54 +183,63 @@ Perfect for PIR and radar sensors like Aqara FP300 and Eve Motion.
               unit_of_measurement: min
               mode: box
               step: 1.0
+
     schedule_restriction:
-      name: Schedule (Optional)
+      name: "📅 Schedule (Optional)"
       description: Restrict the automation to specific time periods using a schedule helper
       icon: mdi:calendar-clock
       collapsed: true
       input:
+
         enable_schedule_restriction:
           name: Enable Schedule Restriction
-          description: If enabled, the automation only runs during the active periods of the selected schedule
+          description: >-
+            If enabled, the automation only runs during the active periods of the selected schedule helper.
           default: false
           selector:
             boolean:
+
         schedule_helper:
           name: Schedule Helper
-          description: Select a Schedule helper schedule that defines when the automation may run
+          description: >-
+            Select a single Schedule helper that defines when the automation may run.
+            Only evaluated when "Enable Schedule Restriction" is turned on.
           default: []
           selector:
             entity:
               domain: schedule
-              multiple: true
-              
+              multiple: false
+
     dim_advanced:
-      name: Dim before Off (Optional)
-      description: Optional courteous behavior – dim as warning before final turn-off
+      name: "🌅 Dim before Off (Optional)"
+      description: Optional courteous behavior – dim as a warning before final turn-off
       icon: mdi:brightness-4
       collapsed: true
       input:
+
         enable_dim_before_off:
           name: Enable Dim before Turning Off
-          description: If enabled, selected "Lights to Turn Off" will dim first instead
-            of turning off immediately
+          description: >-
+            If enabled, "Lights to Turn Off" will gradually dim first instead of turning off immediately.
           default: false
           selector:
             boolean: {}
+
         dim_brightness_pct:
           name: Dim Brightness (%)
-          description: Target brightness at the end of the dimming phase
+          description: Target brightness during the dimming phase.
           default: 20
           selector:
             number:
               min: 1.0
               max: 100.0
               unit_of_measurement: '%'
-              mode: box
+              mode: slider
               step: 1.0
+
         dim_transition_seconds:
           name: Dim Transition Duration (seconds)
-          description: How long the gradual dimming should take
+          description: How long the gradual dimming should take.
           default: 30
           selector:
             number:
@@ -186,10 +248,12 @@ Perfect for PIR and radar sensors like Aqara FP300 and Eve Motion.
               unit_of_measurement: sec
               mode: box
               step: 1.0
+
         dim_delay_minutes:
           name: Hold Time at Dim Level (minutes)
-          description: Additional time the lights stay at the dimmed brightness before
-            finally turning off
+          description: >-
+            Additional time the lights stay at the dimmed brightness before finally turning off.
+            This gives you time to move and re-trigger if needed.
           default: 5
           selector:
             number:
@@ -198,71 +262,147 @@ Perfect for PIR and radar sensors like Aqara FP300 and Eve Motion.
               unit_of_measurement: min
               mode: box
               step: 1.0
+
   source_url: https://github.com/MajorLazer2142/home-assistant_blueprints/blob/main/Clean_and_Simple_Universal_Occupancy_Lighting_for_PIR_and_Radar_Sensors.yaml
+
 variables:
   sensors: !input occupancy_sensors
   enable_dim: !input enable_dim_before_off
   illuminance_sensor_entity: !input illuminance_sensor
   schedule_enabled: !input enable_schedule_restriction
-  schedule_entity: !input schedule_helper
+  schedule_helper_entity: !input schedule_helper
+  color_temp: !input color_temp_kelvin
+  off_delay_min: !input off_delay_minutes
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FIX 1: Trigger on "off" WITHOUT "for" – the delay moves into the action
+# block so the timer starts from the LAST sensor going off, not the first.
+# With mode: restart, any new "on" event during the delay cancels the
+# turn-off sequence automatically.
+# ─────────────────────────────────────────────────────────────────────────────
 trigger:
-- platform: state
-  entity_id: !input occupancy_sensors
-  to: 'on'
-  id: Occupied
-- platform: state
-  entity_id: !input occupancy_sensors
-  to: 'off'
-  for:
-    minutes: !input off_delay_minutes
-  id: Unoccupied
+  - platform: state
+    entity_id: !input occupancy_sensors
+    to: "on"
+    id: Occupied
+
+  - platform: state
+    entity_id: !input occupancy_sensors
+    to: "off"
+    id: Unoccupied
+
 action:
-- choose:
-  - conditions:
-    - condition: trigger
-      id: Occupied
-    - condition: or
-      conditions:
-      - condition: template
-        value_template: '{{ illuminance_sensor_entity == [] }}'
-      - condition: numeric_state
-        entity_id: !input illuminance_sensor
-        below: !input illuminance_threshold
-    - condition: or
-      conditions:
-        - "{{ not schedule_enabled }}"
-        - condition: state
-          entity_id: !input schedule_helper
-          state: "on"    
-    sequence:
-    - service: light.turn_on
-      target: !input lights_turn_on
-      data:
-        brightness_pct: !input brightness_pct
-        color_temp_kelvin: !input color_temp_kelvin
-  - conditions:
-    - condition: trigger
-      id: Unoccupied
-    - condition: template
-      value_template: '{{ expand(sensors) | selectattr(''state'', ''eq'', ''off'')
-        | list | length == sensors | length }}'
-    sequence:
-    - if:
-      - condition: template
-        value_template: '{{ not enable_dim }}'
-      then:
-      - service: light.turn_off
-        target: !input lights_turn_off
-      else:
-      - service: light.turn_on
-        target: !input lights_turn_off
-        data:
-          brightness_pct: !input dim_brightness_pct
-          transition: !input dim_transition_seconds
-      - delay:
-          seconds: !input dim_transition_seconds
-          minutes: !input dim_delay_minutes
-      - service: light.turn_off
-        target: !input lights_turn_off
-  default: []
+  - choose:
+
+      # ── Branch 1: Occupancy detected ──────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: Occupied
+
+          # Illuminance check: skip if no sensor is configured
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: >-
+                  {{ illuminance_sensor_entity in [none, [], ''] }}
+              - condition: numeric_state
+                entity_id: !input illuminance_sensor
+                below: !input illuminance_threshold
+
+          # ── FIX 2: Schedule check – also skip if helper entity is not set ──
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ not schedule_enabled }}"
+              - condition: template
+                value_template: >-
+                  {{ schedule_helper_entity in [none, [], ''] }}
+              - condition: state
+                entity_id: !input schedule_helper
+                state: "on"
+
+        sequence:
+          # Turn on with or without color temperature
+          - if:
+              - condition: template
+                value_template: "{{ color_temp | int(0) > 0 }}"
+            then:
+              - service: light.turn_on
+                target: !input lights_turn_on
+                data:
+                  brightness_pct: !input brightness_pct
+                  color_temp_kelvin: !input color_temp_kelvin
+                  transition: !input turn_on_transition
+            else:
+              - service: light.turn_on
+                target: !input lights_turn_on
+                data:
+                  brightness_pct: !input brightness_pct
+                  transition: !input turn_on_transition
+
+      # ── Branch 2: Area unoccupied (all sensors off) ───────────────────────
+      - conditions:
+          - condition: trigger
+            id: Unoccupied
+
+          # ── FIX 3: Filter unavailable/unknown sensors so they don't block turn-off ──
+          # Check that no reachable sensor is still "on"
+          - condition: template
+            value_template: >-
+              {% set reachable = expand(sensors)
+                   | rejectattr('state', 'in', ['unavailable', 'unknown'])
+                   | list %}
+              {{ reachable | length > 0
+                 and (reachable | selectattr('state', 'eq', 'on') | list | length) == 0 }}
+
+        sequence:
+          # ── FIX 1 continued: Wait the configured off-delay here ──
+          # With mode: restart, any sensor going "on" during this wait
+          # restarts the automation → Branch 1 fires → lights stay on.
+          - delay:
+              minutes: !input off_delay_minutes
+
+          # Re-verify ALL reachable sensors are still off after the delay
+          # (guards against race conditions and very short retriggering)
+          - condition: template
+            value_template: >-
+              {% set reachable = expand(sensors)
+                   | rejectattr('state', 'in', ['unavailable', 'unknown'])
+                   | list %}
+              {{ reachable | length > 0
+                 and (reachable | selectattr('state', 'eq', 'on') | list | length) == 0 }}
+
+          - if:
+              - condition: template
+                value_template: "{{ not enable_dim }}"
+            then:
+              - service: light.turn_off
+                target: !input lights_turn_off
+            else:
+              # Dim phase
+              - service: light.turn_on
+                target: !input lights_turn_off
+                data:
+                  brightness_pct: !input dim_brightness_pct
+                  transition: !input dim_transition_seconds
+              # Wait for transition to complete, then hold at dim level
+              - delay:
+                  seconds: !input dim_transition_seconds
+                  minutes: !input dim_delay_minutes
+              # Final re-check before turning off (someone might have walked in during dim)
+              - condition: template
+                value_template: >-
+                  {% set reachable = expand(sensors)
+                       | rejectattr('state', 'in', ['unavailable', 'unknown'])
+                       | list %}
+                  {{ reachable | length > 0
+                     and (reachable | selectattr('state', 'eq', 'on') | list | length) == 0 }}
+              # Final turn-off
+              - service: light.turn_off
+                target: !input lights_turn_off
+
+    default: []
+
 mode: restart
+# ── FIX 4: Suppress log warnings from frequent sensor state changes ──
+max_exceeded: silent
