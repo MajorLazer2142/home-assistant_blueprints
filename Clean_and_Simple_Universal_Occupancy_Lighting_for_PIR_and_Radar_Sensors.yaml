@@ -3,7 +3,7 @@ blueprint:
   description: >-
     # 💡 Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors
 
-    **Version: 1.9**
+    **Version: 2.0**
 
     Motion-activated lighting with optional illuminance check, fixed brightness/color temperature,
     fade-in on turn-on, dim before off, and schedule restriction via helper.
@@ -15,11 +15,14 @@ blueprint:
 
     ---
 
-    ### 🔧 Changes in v1.9
+    ### 🔧 Changes in v2.0
 
+    - **Feature:** New **"Keep Lights On"** override – select an `input_boolean` or `switch`
+      helper to prevent automatic turn-off. Perfect for when you have visitors and want
+      lights to stay on even after everyone leaves a room. Lights still turn on normally
+      with occupancy.
     - **Fix:** Lights that were manually turned off (voice, switch, app) while the room
       is still occupied will no longer turn back on during the dim-before-off phase.
-      The blueprint now checks if any target lights are still on before dimming or turning off.
     - **Feature:** Off-delay now configurable in **seconds** (0–3600) instead of minutes,
       allowing short delays like 10 seconds for hallways. Default: 300 s (= 5 min).
     - **Fix:** Off-delay now correctly starts from the *last* sensor going off
@@ -217,6 +220,39 @@ blueprint:
               domain: schedule
               multiple: false
 
+    keep_lights_on:
+      name: "🔒 Keep Lights On (Optional)"
+      description: >-
+        Use a switch or input_boolean helper to override automatic turn-off.
+        Perfect for when you have visitors and want lights to stay on.
+      icon: mdi:light-switch
+      collapsed: true
+      input:
+
+        enable_keep_lights_on:
+          name: Enable Keep Lights On Override
+          description: >-
+            If enabled, the automation will not turn off or dim lights as long as the
+            selected helper switch is turned on. Lights will still turn on normally when
+            occupancy is detected.
+          default: false
+          selector:
+            boolean:
+
+        keep_lights_on_helper:
+          name: Keep Lights On Helper
+          description: >-
+            Select an input_boolean or switch that acts as a "keep lights on" override.
+            While this helper is on, lights will not be dimmed or turned off automatically.
+            Only evaluated when "Enable Keep Lights On Override" is turned on.
+          default: []
+          selector:
+            entity:
+              domain:
+                - input_boolean
+                - switch
+              multiple: false
+
     dim_advanced:
       name: "🌅 Dim before Off (Optional)"
       description: Optional courteous behavior – dim as a warning before final turn-off
@@ -281,6 +317,8 @@ variables:
   color_temp: !input color_temp_kelvin
   off_delay_sec: !input off_delay_seconds
   lights_off_target: !input lights_turn_off
+  keep_on_enabled: !input enable_keep_lights_on
+  keep_on_helper_entity: !input keep_lights_on_helper
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FIX 1: Trigger on "off" WITHOUT "for" – the delay moves into the action
@@ -362,6 +400,18 @@ action:
                    | list %}
               {{ reachable | length > 0
                  and (reachable | selectattr('state', 'eq', 'on') | list | length) == 0 }}
+
+          # ── Keep Lights On: skip turn-off if override helper is active ──
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ not keep_on_enabled }}"
+              - condition: template
+                value_template: >-
+                  {{ keep_on_helper_entity in [none, [], ''] }}
+              - condition: template
+                value_template: >-
+                  {{ not is_state(keep_on_helper_entity, 'on') }}
 
         sequence:
           # ── FIX 1 continued: Wait the configured off-delay here ──
