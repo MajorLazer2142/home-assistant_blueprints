@@ -3,7 +3,7 @@ blueprint:
   description: >-
     # 💡 Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors
 
-    **Version: 1.8**
+    **Version: 1.9**
 
     Motion-activated lighting with optional illuminance check, fixed brightness/color temperature,
     fade-in on turn-on, dim before off, and schedule restriction via helper.
@@ -15,8 +15,11 @@ blueprint:
 
     ---
 
-    ### 🔧 Changes in v1.8
+    ### 🔧 Changes in v1.9
 
+    - **Fix:** Lights that were manually turned off (voice, switch, app) while the room
+      is still occupied will no longer turn back on during the dim-before-off phase.
+      The blueprint now checks if any target lights are still on before dimming or turning off.
     - **Feature:** Off-delay now configurable in **seconds** (0–3600) instead of minutes,
       allowing short delays like 10 seconds for hallways. Default: 300 s (= 5 min).
     - **Fix:** Off-delay now correctly starts from the *last* sensor going off
@@ -277,6 +280,7 @@ variables:
   schedule_helper_entity: !input schedule_helper
   color_temp: !input color_temp_kelvin
   off_delay_sec: !input off_delay_seconds
+  lights_off_target: !input lights_turn_off
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FIX 1: Trigger on "off" WITHOUT "for" – the delay moves into the action
@@ -375,6 +379,33 @@ action:
                    | list %}
               {{ reachable | length > 0
                  and (reachable | selectattr('state', 'eq', 'on') | list | length) == 0 }}
+
+          # ── FIX 5: Skip dim/off if lights were already turned off manually ──
+          # Resolve all light entities from the target (entity_id, device_id, area_id)
+          # and stop if none of them are currently on.
+          - condition: template
+            value_template: >-
+              {% set ns = namespace(entities=[]) %}
+              {% if lights_off_target.entity_id is defined %}
+                {% if lights_off_target.entity_id is string %}
+                  {% set ns.entities = [lights_off_target.entity_id] %}
+                {% else %}
+                  {% set ns.entities = lights_off_target.entity_id | list %}
+                {% endif %}
+              {% endif %}
+              {% if lights_off_target.device_id is defined %}
+                {% set devices = [lights_off_target.device_id] if lights_off_target.device_id is string else lights_off_target.device_id %}
+                {% for dev in devices %}
+                  {% set ns.entities = ns.entities + (device_entities(dev) | select('match', 'light\\.') | list) %}
+                {% endfor %}
+              {% endif %}
+              {% if lights_off_target.area_id is defined %}
+                {% set areas = [lights_off_target.area_id] if lights_off_target.area_id is string else lights_off_target.area_id %}
+                {% for area in areas %}
+                  {% set ns.entities = ns.entities + (area_entities(area) | select('match', 'light\\.') | list) %}
+                {% endfor %}
+              {% endif %}
+              {{ ns.entities | select('is_state', 'on') | list | length > 0 }}
 
           - if:
               - condition: template
