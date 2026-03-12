@@ -1,50 +1,21 @@
 blueprint:
   name: "Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors"
   description: >-
-    # 💡 Clean & Simple Universal Occupancy Lighting for PIR & Radar Sensors
+    # 💡 Universal Occupancy Lighting · v2.0
 
-    **Version: 2.0**
+    Motion-activated lighting for PIR & radar sensors (Aqara FP300, Eve Motion, etc.).
+    Occupied = at least one sensor detects presence.
 
-    Motion-activated lighting with optional illuminance check, fixed brightness/color temperature,
-    fade-in on turn-on, dim before off, and schedule restriction via helper.
-
-    Area is occupied if **at least one** sensor detects presence.
-    Separate selection for lights to turn on and lights to turn off.
-
-    Perfect for PIR and radar sensors like Aqara FP300 and Eve Motion.
+    **Features:** illuminance gate · brightness & color temp · fade-in ·
+    dim-before-off · schedule restriction · "keep lights on" override · off-delay in seconds
 
     ---
 
-    ### 🔧 Changes in v2.0
+    **Lights not showing?** Switch to the *Entity* tab in the target picker.
 
-    - **Feature:** New **"Keep Lights On"** override – select an `input_boolean` or `switch`
-      helper to prevent automatic turn-off. Perfect for when you have visitors and want
-      lights to stay on even after everyone leaves a room. Lights still turn on normally
-      with occupancy.
-    - **Fix:** Lights that were manually turned off (voice, switch, app) while the room
-      is still occupied will no longer turn back on during the dim-before-off phase.
-    - **Feature:** Off-delay now configurable in **seconds** (0–3600) instead of minutes,
-      allowing short delays like 10 seconds for hallways. Default: 300 s (= 5 min).
-    - **Fix:** Off-delay now correctly starts from the *last* sensor going off
-      (previously could fire too early with multiple sensors).
-    - **Fix:** Schedule restriction no longer errors when enabled without a helper selected.
-    - **Fix:** Sensors with state `unavailable` or `unknown` are now filtered out,
-      preventing lights from getting stuck on.
-    - **Improvement:** Added `max_exceeded: silent` to suppress log warnings from frequent sensor events.
-
-    ---
-
-    ### ❓ Troubleshooting
-
-    **Lights not showing in the picker?**
-    Make sure you are on the *Entity* tab in the target picker. If you use light groups or
-    devices, switch to the *Device* or *Area* tab. Only entities with domain `light` are listed.
-
-    **Sensor not triggering (e.g. Aqara FP300 via Matter/Thread)?**
-    Open *Developer Tools → States* and search for your sensor. It must have
-    `device_class: occupancy`, `motion`, or `presence` to appear in the selector.
-    If the device_class is missing or different, create an `input_boolean` helper and
-    mirror it with a separate template/automation, then use that helper here.
+    **Sensor not triggering (Matter/Thread)?** Check *Developer Tools → States* –
+    it needs `device_class: occupancy`, `motion`, or `presence`.
+    If missing, mirror the state to an `input_boolean` and use that instead.
 
     ---
 
@@ -64,8 +35,7 @@ blueprint:
         occupancy_sensors:
           name: Occupancy Sensors *
           description: >-
-            One or more presence/motion sensors. The area counts as occupied if **at least one**
-            sensor detects presence. Supported device classes: occupancy, motion, presence.
+            One or more presence/motion sensors. Occupied = at least one sensor is on.
           default: []
           selector:
             entity:
@@ -81,7 +51,7 @@ blueprint:
         illuminance_sensor:
           name: Illuminance Sensor (optional)
           description: >-
-            Leave empty to ignore ambient light – lights will turn on regardless of brightness.
+            Leave empty to ignore ambient light.
           default: []
           selector:
             entity:
@@ -113,8 +83,7 @@ blueprint:
         lights_turn_on:
           name: Lights to Turn On *
           description: >-
-            These lights will be turned on when occupancy is detected (and dark enough).
-            You can select individual entities, devices, or entire areas.
+            Turned on when occupancy is detected (and dark enough). Supports entities, devices, and areas.
           default: {}
           selector:
             target:
@@ -125,8 +94,7 @@ blueprint:
         lights_turn_off:
           name: Lights to Turn Off *
           description: >-
-            These lights will be dimmed/turned off when the area becomes unoccupied.
-            Can be the same as or different from "Lights to Turn On".
+            Dimmed/turned off when unoccupied. Can differ from "Lights to Turn On".
           default: {}
           selector:
             target:
@@ -149,8 +117,7 @@ blueprint:
         color_temp_kelvin:
           name: Color Temperature when Turning On (Kelvin)
           description: >-
-            Fixed color temperature (2700 = warm white, 6500 = cool daylight).
-            Set to 0 to skip changing the color temperature.
+            2700 = warm white, 6500 = cool daylight. Set to 0 to skip.
           default: 2700
           selector:
             number:
@@ -163,7 +130,7 @@ blueprint:
         turn_on_transition:
           name: Fade-in Duration when Turning On (seconds)
           description: >-
-            How long the lights take to fade in when turning on. Set to 0 for instant on.
+            Fade-in time when turning on. 0 = instant.
           default: 0
           selector:
             number:
@@ -183,8 +150,7 @@ blueprint:
         off_delay_seconds:
           name: Main Off Delay (seconds)
           description: >-
-            Time after last detection before dimming or turning off.
-            Example: 10 = 10 seconds, 300 = 5 minutes.
+            Wait time after last sensor clears. Example: 10 = 10 s, 300 = 5 min.
           default: 300
           selector:
             number:
@@ -204,7 +170,7 @@ blueprint:
         enable_schedule_restriction:
           name: Enable Schedule Restriction
           description: >-
-            If enabled, the automation only runs during the active periods of the selected schedule helper.
+            Only run during active periods of the selected schedule helper.
           default: false
           selector:
             boolean:
@@ -212,8 +178,7 @@ blueprint:
         schedule_helper:
           name: Schedule Helper
           description: >-
-            Select a single Schedule helper that defines when the automation may run.
-            Only evaluated when "Enable Schedule Restriction" is turned on.
+            Only used when "Enable Schedule Restriction" is on.
           default: []
           selector:
             entity:
@@ -223,8 +188,7 @@ blueprint:
     keep_lights_on:
       name: "🔒 Keep Lights On (Optional)"
       description: >-
-        Use a switch or input_boolean helper to override automatic turn-off.
-        Perfect for when you have visitors and want lights to stay on.
+        Override automatic turn-off with a helper switch (e.g. for visitors).
       icon: mdi:light-switch
       collapsed: true
       input:
@@ -232,9 +196,8 @@ blueprint:
         enable_keep_lights_on:
           name: Enable Keep Lights On Override
           description: >-
-            If enabled, the automation will not turn off or dim lights as long as the
-            selected helper switch is turned on. Lights will still turn on normally when
-            occupancy is detected.
+            While the helper is on, lights won't dim or turn off automatically.
+            They still turn on normally with occupancy.
           default: false
           selector:
             boolean:
@@ -242,9 +205,7 @@ blueprint:
         keep_lights_on_helper:
           name: Keep Lights On Helper
           description: >-
-            Select an input_boolean or switch that acts as a "keep lights on" override.
-            While this helper is on, lights will not be dimmed or turned off automatically.
-            Only evaluated when "Enable Keep Lights On Override" is turned on.
+            Only used when "Enable Keep Lights On Override" is on.
           default: []
           selector:
             entity:
@@ -263,7 +224,7 @@ blueprint:
         enable_dim_before_off:
           name: Enable Dim before Turning Off
           description: >-
-            If enabled, "Lights to Turn Off" will gradually dim first instead of turning off immediately.
+            Gradually dim lights as a warning before turning off.
           default: false
           selector:
             boolean: {}
@@ -295,8 +256,7 @@ blueprint:
         dim_delay_minutes:
           name: Hold Time at Dim Level (minutes)
           description: >-
-            Additional time the lights stay at the dimmed brightness before finally turning off.
-            This gives you time to move and re-trigger if needed.
+            Time at dim level before final turn-off. Gives you time to re-trigger.
           default: 5
           selector:
             number:
